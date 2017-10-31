@@ -136,5 +136,50 @@
                 _target.Logs[0].ShouldBe("INFO||value|m|");
             }
         }
+
+#if NLOG4
+        [Fact]
+        public void Can_capture_callsite()
+        {
+            var myTarget = new MemoryTarget
+            {
+                Layout = "${level:uppercase=true}|${callsite}|${message}|${exception}"
+            };
+            LogManager.Configuration.LoggingRules.Add(new LoggingRule("*", NLog.LogLevel.Trace, myTarget));
+            LogManager.ReconfigExistingLoggers();
+            _sut.Info("a");
+            myTarget.Logs[myTarget.Logs.Count - 1].ShouldBe(string.Format("INFO|{0}.{1}|a|", GetType().FullName, nameof(Can_capture_callsite)));
+            _sut.Log(LogLevel.Info, () => "b");
+            myTarget.Logs[myTarget.Logs.Count - 1].ShouldBe(string.Format("INFO|{0}.{1}|b|", GetType().FullName, nameof(Can_capture_callsite)));
+            _sut.Info(() => "c");
+            myTarget.Logs[myTarget.Logs.Count - 1].ShouldBe(string.Format("INFO|{0}.{1}|c|", GetType().FullName, nameof(Can_capture_callsite)));
+        }
+#endif
+
+        [Fact]
+        public void Can_open_mapped_diagnostics_context_destructured()
+        {
+            var context = new MyMappedContext();
+
+            using (_logProvider.OpenMappedContext("key", context, true))
+            {
+                _sut.Info("m");
+
+                _target.Logs[0].ShouldBe("INFO||World|m|");
+            }
+        }
+
+        [Fact]
+        public void Can_open_mapped_diagnostics_context_not_destructured()
+        {
+            var context = new MyMappedContext();
+
+            using (_logProvider.OpenMappedContext("key", context, false))
+            {
+                _sut.Info("m");
+
+                _target.Logs[0].ShouldBe("INFO||World|m|");
+            }
+        }
     }
 }
